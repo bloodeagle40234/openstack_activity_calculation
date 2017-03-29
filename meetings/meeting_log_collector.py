@@ -119,7 +119,7 @@ class MeetingLogParser(NormalLogParser):
 
 
 if __name__ == '__main__':
-    year = 2016
+    year = 2014
     start_datetime = datetime(year=year, month=1, day=1)
     end_datetime = datetime(year=year, month=12, day=31)
     contributor_names = [
