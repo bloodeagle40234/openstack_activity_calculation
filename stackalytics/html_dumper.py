@@ -5,7 +5,6 @@ import json
 base_url = 'http://stackalytics.com/api/'
 version = '1.0'
 api = 'stats'
-base_request_url = os.path.join(base_url, version, api)
 
 releases = [
     'all',
@@ -15,8 +14,19 @@ releases = [
     'pike']
 
 
-class BaseCollector(object):
+class CommitCollector(object):
     page_size = 100
+    user_id_list = [
+        'tsuyuzaki-kota', 'miyahara-kazuhiro', 'notmyname', 'clay-gerrard',
+        'alistair-coles', 'cschwede', 'thiagodasilva']
+
+    def __init__(self, user_id_list=None):
+        self.filter_params = {
+            'metric': 'commits',
+            'page_size': self.page_size,
+            'start_record': 0}
+        self.user_id_list = user_id_list or self.user_id_list
+        self.url = os.path.join(base_url, version, 'activity')
 
     def collect_activities(self, user_id, release, params=None):
         """
@@ -33,8 +43,7 @@ class BaseCollector(object):
         filter_params.update(params)
         activities = []
         while True:
-            resp = requests.get(
-                os.path.join(base_url, version, 'activity'), filter_params)
+            resp = requests.get(self.url, filter_params)
             content = json.loads(resp.content)
             activities.extend(content['activity'])
             filter_params['start_record'] += self.page_size
@@ -114,53 +123,37 @@ class BaseCollector(object):
         return title_row
 
 
-class CommitCollector(BaseCollector):
-    user_id_list = [
-        'tsuyuzaki-kota', 'miyahara-kazuhiro', 'notmyname', 'clay-gerrard',
-        'alistair-coles', 'cschwede', 'thiagodasilva']
-
-    def __init__(self):
-        self.filter_params = {
-            'metric': 'commits',
-            'page_size': self.page_size,
-            'start_record': 0}
-
-    def commit_count(self, commit_info_dict):
-        """
-        summarize
-        :param commit_info_dict: a raw infor dict that collect_commit_info
-            returns
-        :return: summary info that maps release -> user_id -> value
-        """
-        commit_counts = {}
-        for release, commit_dict in commit_info_dict.items():
-            commit_counts_per_release = {}
-            for user_id, commit_list in commit_dict.items():
-                commit_counts_per_release[user_id] = len(commit_list)
-            commit_counts[release] = commit_counts_per_release
-        return commit_counts
+def commit_count(commit_info_dict):
+    """
+    helper fucntion to summarize all commit count from raw commit info
+    :param commit_info_dict: a raw infor dict that collect_commit_info
+        returns
+    :return: summary info that maps release -> user_id -> value
+    """
+    commit_counts = {}
+    for release, commit_dict in commit_info_dict.items():
+        commit_counts_per_release = {}
+        for user_id, commit_list in commit_dict.items():
+            commit_counts_per_release[user_id] = len(commit_list)
+        commit_counts[release] = commit_counts_per_release
+    return commit_counts
 
 
-class LoCCollector(BaseCollector):
-    user_id_list = [
-        'tsuyuzaki-kota', 'miyahara-kazuhiro', 'notmyname', 'clay-gerrard',
-        'alistair-coles', 'cschwede', 'thiagodasilva']
-
-    def lines_of_code(self, commit_info_dict):
-        """
-        summarize
-        :param commit_info_dict: a raw infor dict that collect_commit_info
-            returns
-        :return: summary info that maps release -> user_id -> value
-        """
-        lines_of_code = {}
-        for release, commit_dict in commit_info_dict.items():
-            user_to_loc = {}
-            for user_id, commit_list in commit_dict.items():
-                user_to_loc[user_id] = sum(
-                    commit['lines_of_code'] for commit in commit_list)
-            lines_of_code[release] = user_to_loc
-        return lines_of_code
+def lines_of_code(commit_info_dict):
+    """
+    helper fucntion to summarize all lines of code from raw commit info
+    :param commit_info_dict: a raw infor dict that collect_commit_info
+        returns
+    :return: summary info that maps release -> user_id -> value
+    """
+    lines_of_code = {}
+    for release, commit_dict in commit_info_dict.items():
+        user_to_loc = {}
+        for user_id, commit_list in commit_dict.items():
+            user_to_loc[user_id] = sum(
+                commit['lines_of_code'] for commit in commit_list)
+        lines_of_code[release] = user_to_loc
+    return lines_of_code
 
 
 class ReviewCollector(object):
@@ -222,10 +215,9 @@ if __name__ == '__main__':
     info = commit_collector.collect_commit_info(['pike'])
 
     # commit
-    # result = commit_collector.commit_count(info)
+    result = commit_count(info)
     # commit_collector.dump_result(result)
 
     # loc
-    loc_collector = LoCCollector()
-    result = loc_collector.lines_of_code(info)
-    loc_collector.dump_result(result)
+    result = lines_of_code(info)
+    commit_collector.dump_result(result)
