@@ -1,4 +1,10 @@
-from html.parser import HTMLParser
+import six
+
+if six.PY2:
+    from HTMLParser import HTMLParser
+else:
+    from html.parser import HTMLParser
+
 import requests
 from datetime import datetime
 import os
@@ -95,7 +101,7 @@ if __name__ == '__main__':
     # choose MeetingLogParser or NormalLogParser
     log_parser = MeetingLogParser(year)
     # log_parser = NormalLogParser()
-    base_datetime = datetime(year=year, month=3, day=17)
+    base_datetime = datetime(year=year, month=7, day=7)
     resp = requests.get(os.path.join(log_parser.base_url))
     parser = LinkParser()
     parser.feed(resp.content)

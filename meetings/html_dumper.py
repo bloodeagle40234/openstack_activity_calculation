@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from HTMLParser import HTMLParser
+
+if six.PY2:
+    from HTMLParser import HTMLParser
+else:
+    from html.parser import HTMLParser
+
 import requests
 from datetime import datetime
 import os
